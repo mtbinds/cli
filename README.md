@@ -5,7 +5,7 @@
 
 ## Auteur(s)
 
-<h3>Groupe Serveur</h3>
+<h3>Groupe CLI</h3>
 
 |Nom|Prénom|login|email|
 |--|--|--|--|
