@@ -34,7 +34,7 @@ class BdoEntity(AbstractEntity):
     ou transformer se qu'il y a en base de donnée en objet
     """
 
-    staticmethod
+    @staticmethod
     def read_all(type: Type[AbstractEntity], connection: Connection) -> list[type.__class__]:
         """
         fonction qui retourne une liste d'objet lié a type
