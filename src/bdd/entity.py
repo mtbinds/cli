@@ -1,3 +1,4 @@
+import copy
 from sqlite3 import Connection
 from typing import Any, Type
 
@@ -6,11 +7,40 @@ def transform_for_sql(text):
     if not isinstance(text, str): return str(text)
     return "'{}'".format(text)
 
+def parse_option(key, value, symbol = "="):
+    """
+    :param key: nom de la variable a imposer une condition
+    :param value: valeur pouvant etre un dictionnaire ou une valeur normal
+    :param symbol: symbol utilisé lors de la contidion
+    :return:
+    """
+    if not isinstance(value, dict):
+        return key + symbol + transform_for_sql(value)
+
+    if value.keys().__contains__("value") and value.keys().__contains__("symbol"):
+        """{"symbol" : ">", "value" : 0} => where [key] > 0
+           {"symbol" : ">", "value" : 0, "equals" : True} => where [key] >= 0
+        """
+        if value.keys().__contains__("equals") and value.get("equals"):
+            return parse_option(key, value.get("value"), value.get("symbole") + "=")
+        return parse_option(key, value.get("value"), value.get("symbol"))
+    elif value.keys().__contains__("min") and value.keys().__contains__("max"):
+        """{"min" : 0, "max" : 3} => where [key] > 0 and [key] < 3
+           {"min" : 0, "max" : 3, "equals" : True} => where [key] >= 0 and [key] <= 3
+        """
+        if value.keys().__contains__("equals") and value.get("equals"):
+            return parse_option(key, value.get("min"), ">=") + " and " + parse_option(key, value.get("max"), "<=")
+        return parse_option(key, value.get("min"), ">") + " and " + parse_option(key, value.get("max"), "<")
+
+def parse_order(key, type : str):
+    if type.lower() == "asc" or type.lower() == "up":
+        return key + " " + "ASC"
+    elif type.lower() == "desc" or type.lower() == "down":
+        return key + " " + "DESC"
+
+
 
 class AbstractEntity:
-
-    def get_table_name(self) -> str:
-        return self.__class__.__name__
 
     def to_json(self) -> dict[str, Any]:
         return vars(self)
@@ -53,7 +83,18 @@ class BdoEntity(AbstractEntity):
         sql = "SELECT {} from {}".format(",".join(keys), type.__name__)
 
         if bool(option):
-            sql += " where {}".format(" and ".join(k + " = " + transform_for_sql(v) for k, v in option.items()))
+            order = False
+            if option.keys().__contains__("order"):
+                order = option.get("order")
+                del option["order"]
+            sql += " where {}".format(" AND ".join(parse_option(k, v) for k, v in option.items()))
+            print(order)
+            if bool(order) and isinstance(order, dict):
+                """
+                "order" : {"id" : "up"} -> order by id ASC
+                "order" : {"id" : "up", "name" : "down"} -> order by id ASC, name DESC
+                """
+                sql += " order by {}".format(", ".join(parse_order(k, v) for k, v in order.items()))
 
         print(sql)
         cursor = connection.cursor()
@@ -67,6 +108,9 @@ class BdoEntity(AbstractEntity):
             for row in result:
                 list.append(type.to_object(row))
             return list
+
+    def get_table_name(self) -> str:
+        return self.__class__.__name__
 
     def save(self, connection: Connection) -> None:
         """
