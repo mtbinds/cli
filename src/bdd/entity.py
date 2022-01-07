@@ -2,14 +2,9 @@ from sqlite3 import Connection
 from typing import Any, Type
 
 
-def transforme_for_sql(text):
+def transform_for_sql(text):
     if not isinstance(text, str): return str(text)
-    if text.isnumeric():
-        return int(text)
-    elif text == "False" or text == "True":
-        return bool(text)
-    else:
-        return "'{}'".format(text)
+    return "'{}'".format(text)
 
 
 class AbstractEntity:
@@ -58,7 +53,7 @@ class BdoEntity(AbstractEntity):
         sql = "SELECT {} from {}".format(",".join(keys), type.__name__)
 
         if bool(option):
-            sql += " where {}".format(" and ".join(k + " = " + transforme_for_sql(v) for k, v in option.items()))
+            sql += " where {}".format(" and ".join(k + " = " + transform_for_sql(v) for k, v in option.items()))
 
         print(sql)
         cursor = connection.cursor()
@@ -80,10 +75,9 @@ class BdoEntity(AbstractEntity):
         :return:
         """
         json = self.to_json()
-        print(','.join(json.keys()))
-        print(','.join(transforme_for_sql(k) for k in json.values()))
         sql = "INSERT OR REPLACE INTO {}({}) VALUES({})".format(self.get_table_name(), ','.join(json.keys()),
-                                                                ','.join(transforme_for_sql(k) for k in json.values()))
+                                                                ','.join(transform_for_sql(k) for k in json.values()))
+        print(sql)
         cursor = connection.cursor()
         cursor.execute(sql)
         connection.commit()
