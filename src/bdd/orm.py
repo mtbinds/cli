@@ -14,13 +14,30 @@ class AbstractEntity:
     def to_object(args: tuple[str]):
         pass
 
+    def get_table_name(self) -> str:
+        return self.__class__.__name__
+
 
 def transform_for_sql(text):
     if not isinstance(text, str): return str(text)
     return "'{}'".format(text)
 
 
-def parse_option(key, value, symbol="="):
+def parse_option(option: dict[str, Any], logic: str):
+    """
+    fonction qui va parser les options de recherche
+    :param option: le dictionnaire de recherche
+    :param logic: la logique de base de recherche (or ou and)
+    :return:
+    """
+    if is_logic(
+            option):  # je regarde si l'option contient une "logic" cad est de la forme {"logic" : "...", "options" : {....}}
+        return parse_logic(option)
+    else:  # les options sont "basic" et sont joint par la logique par défauts
+        return " {} ".format(logic).join(parse_unit_option(k, v) for k, v in option.items())
+
+
+def parse_unit_option(key, value, symbol="="):
     """
     :param key: nom de la variable a imposer une condition
     :param value: valeur pouvant etre un dictionnaire ou une valeur normal
@@ -37,17 +54,18 @@ def parse_option(key, value, symbol="="):
         """
         if value.keys().__contains__("equals") and value.get("equals"):
             if value.keys().__contains__("symbol"):
-                return parse_option(key, value.get("value"), value.get("symbole") + "=")
+                return parse_unit_option(key, value.get("value"), value.get("symbole") + "=")
             else:
-                return parse_option(key, value.get("value"), symbol + "=")
-        return parse_option(key, value.get("value"), value.get("symbol"))
+                return parse_unit_option(key, value.get("value"), symbol + "=")
+        return parse_unit_option(key, value.get("value"), value.get("symbol"))
     elif value.keys().__contains__("min") and value.keys().__contains__("max"):
         """{"min" : 0, "max" : 3} => where [key] > 0 and [key] < 3
            {"min" : 0, "max" : 3, "equals" : True} => where [key] >= 0 and [key] <= 3
         """
         if value.keys().__contains__("equals") and value.get("equals"):
-            return parse_option(key, value.get("min"), ">=") + " and " + parse_option(key, value.get("max"), "<=")
-        return parse_option(key, value.get("min"), ">") + " and " + parse_option(key, value.get("max"), "<")
+            return parse_unit_option(key, value.get("min"), ">=") + " and " + parse_unit_option(key, value.get("max"),
+                                                                                                "<=")
+        return parse_unit_option(key, value.get("min"), ">") + " and " + parse_unit_option(key, value.get("max"), "<")
     elif value.keys().__contains__("contain"):
         """ {"competences_id" : {"contain" : "alo"}} => where instr(competences_id, 'alo') > 0
         """
@@ -61,17 +79,79 @@ def parse_order(key, type: str):
         return key + " " + "DESC"
 
 
+def is_logic(logic: dict):
+    return logic.keys().__contains__("logic") and logic.keys().__contains__("options") and isinstance(
+        logic.get("logic"), str) and isinstance(logic.get("options"), list) and \
+           (logic.get("logic").lower() == "and" or logic.get("logic").lower() == "or")
+
+
+def parse_logic(value: dict):
+    """
+    ici prend forme la version "complexe" des options mais qui permet de faire des recherche plus complexe
+
+    imaginons que vous avais un objet Humain composé de
+    ID | NAME | AGE | SIZE
+
+    et que l'ont veux faire une recherche sur des humain ayant au minimum 18 ans et que le taille soit > 180
+    ou que leur nom soit Michel
+
+    en SQLite on ferais quelque chose comme ça
+    select * from Humain where AGE >= 18 and (SIZE >= 180 or NAME = Michel)
+
+    avec les options "basic" on ne pouvais pas faire ça, il y a donc un système pour le faire maintenant.
+
+    si nous voulons faire cette requete voici quelle dictionnaire il va valoir faire
+
+    option = {
+        "logic" : "and",
+        "options" : [
+            { # une option "basic"
+                "AGE" : {
+                    "symbol" : ">=",
+                    "value" : 18
+                }
+            },
+            { # une autre option "complex" c'est recursif donc on peux les imbriqué autant qu'on veux
+                "logic" : "or",
+                "options" : [
+                    {
+                        "SIZE" : {
+                            "symbol" : ">=",
+                            "value" : 180
+                        }
+                    },
+                    {
+                        "NAME" : "MICHEL"
+                    }
+                ]
+            }
+        ]
+    }
+    :param value:
+    :return:
+    """
+    if is_logic(value):
+        return "(" + " {} ".format(value.get("logic")).join(
+            parse_option(v, value.get("logic")) for v in value.get("options")) + ")"
+        pass
+    raise ValueError("ORM ERROR : function `parse_logic` : parameter is not a logic object")
+
+
 def query(type: Type, connection: Connection, keys: list[str] = ["*"],
           option: dict[str, Any] = {}, group: list[str] = [], size: int = -1, order: dict = {}, logic: str = "AND") -> \
         list[tuple] or list[type.__class__]:
     """
-            cette fonction retourne une liste d'objet lié a une requete
-            :param type: classe demandé en retour (valable que si keys = ["*"]
-            :param connection: instance de la base de donnée sqlite
-            :param keys: permet de choisir les champs de retour de la requete
-            :param option: permet de choisir des options, exmeple where id = 0 => {"id" : 0}
-            :return: retourne soit une liste de tuple (basé sur keys) soit une liste de d'objet lié a type
-            """
+
+    :param type: type de retour si keys = [*], et table de recherche {ex : type = A => select * from A}
+    :param connection: connection a la bdd
+    :param keys: select retournée de la requete sqlite {ex : keys = ["*"] => select * from ...}
+    :param option: option de recherche (detail dans parse_option)
+    :param group: de quoi grouper un requete {group = ["name"] => select ..... groupe by 'name'}
+    :param size: taille de la liste de retour
+    :param order: ordre de recherche {order = {"id" : "asc"} => select ......... order by id asc}
+    :param logic: logic de base des options and ou or
+    :return:
+    """
 
     if logic.lower() != "and" and logic.lower() != "or":
         raise ValueError("logic = {}, is not `and` or `or`".format(logic))
@@ -87,7 +167,7 @@ def query(type: Type, connection: Connection, keys: list[str] = ["*"],
         """
         voir parse_option
         """
-        option_sql = " where {}".format(" {} ".format(logic).join(parse_option(k, v) for k, v in option.items()))
+        option_sql = " where {}".format(parse_option(option, logic))
 
     if bool(order):
         """
