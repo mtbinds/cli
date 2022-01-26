@@ -31,8 +31,6 @@ class BdoEntity(AbstractEntity):
              logic: str = "AND") -> list[tuple] or list[type.__class__]:
         return query(type, connection, keys, option, group, size, order, logic)
 
-    def get_table_name(self) -> str:
-        return self.__class__.__name__
 
     def save(self, connection: Connection) -> None:
         """
