@@ -60,7 +60,7 @@ CREATE TABLE Matieres(
 CREATE TABLE SyllabusMatieres(
     matiere_id INT,
     syllabus_id INT,
-    FOREIGN KEY(matiere_id) REFERENCES Matieres(matiere_id),
+    FOREIGN KEY(matiere_id) REFERENCES Matieres(matieres_id),
     FOREIGN KEY(syllabus_id) REFERENCES Syllabus(syllabus_id)
 );
 

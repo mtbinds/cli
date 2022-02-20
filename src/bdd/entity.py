@@ -1,55 +1,7 @@
 from sqlite3 import Connection
 from typing import Any, Type
 
-
-def transform_for_sql(text):
-    if not isinstance(text, str): return str(text)
-    return "'{}'".format(text)
-
-def parse_option(key, value, symbol = "="):
-    """
-    :param key: nom de la variable a imposer une condition
-    :param value: valeur pouvant etre un dictionnaire ou une valeur normal
-    :param symbol: symbol utilisé lors de la contidion
-    :return:
-    """
-    if not isinstance(value, dict):
-        return key + symbol + transform_for_sql(value)
-
-    if value.keys().__contains__("value") and value.keys().__contains__("symbol"):
-        """{"symbol" : ">", "value" : 0} => where [key] > 0
-           {"symbol" : ">", "value" : 0, "equals" : True} => where [key] >= 0
-        """
-        if value.keys().__contains__("equals") and value.get("equals"):
-            return parse_option(key, value.get("value"), value.get("symbole") + "=")
-        return parse_option(key, value.get("value"), value.get("symbol"))
-    elif value.keys().__contains__("min") and value.keys().__contains__("max"):
-        """{"min" : 0, "max" : 3} => where [key] > 0 and [key] < 3
-           {"min" : 0, "max" : 3, "equals" : True} => where [key] >= 0 and [key] <= 3
-        """
-        if value.keys().__contains__("equals") and value.get("equals"):
-            return parse_option(key, value.get("min"), ">=") + " and " + parse_option(key, value.get("max"), "<=")
-        return parse_option(key, value.get("min"), ">") + " and " + parse_option(key, value.get("max"), "<")
-
-def parse_order(key, type : str):
-    if type.lower() == "asc" or type.lower() == "up":
-        return key + " " + "ASC"
-    elif type.lower() == "desc" or type.lower() == "down":
-        return key + " " + "DESC"
-
-
-
-class AbstractEntity:
-
-    def to_json(self) -> dict[str, Any]:
-        return vars(self)
-
-    def __str__(self):
-        return str(self.to_json())
-
-    @staticmethod
-    def to_object(args: tuple[str]):
-        pass
+from src.bdd.orm import ORM, AbstractEntity, context
 
 
 class BdoEntity(AbstractEntity):
@@ -59,7 +11,7 @@ class BdoEntity(AbstractEntity):
     """
 
     @staticmethod
-    def read_all(type: Type[AbstractEntity], connection: Connection) -> list[type.__class__]:
+    def read_all(type: Type[AbstractEntity], connection: Connection = context()) -> list[type.__class__]:
         """
         fonction qui retourne une liste d'objet lié a type
         :param type: classe demandé en retour dans la liste
@@ -69,49 +21,29 @@ class BdoEntity(AbstractEntity):
         return BdoEntity.read(type, connection)
 
     @staticmethod
-    def read(type: Type[AbstractEntity], connection: Connection, keys: list[str] = ["*"],
-             option: dict[str, Any] = {}) -> list[tuple] or list[type.__class__]:
-        """
-        cette fonction retourne une liste d'objet lié a une requete
-        :param type: classe demandé en retour (valable que si keys = ["*"]
-        :param connection: instance de la base de donnée sqlite
-        :param keys: permet de choisir les champs de retour de la requete
-        :param option: permet de choisir des options, exmeple where id = 0 => {"id" : 0}
-        :return: retourne soit une liste de tuple (basé sur keys) soit une liste de d'objet lié a type
-        """
-        sql = "SELECT {} from {}".format(",".join(keys), type.__name__)
+    def exist(type: Type[AbstractEntity], connection: Connection = False,
+              option: dict[str, Any] = {}) -> bool:
+        return len(BdoEntity.read(type, connection, option=option)) >= 1
 
-        if bool(option):
-            order = False
-            if option.keys().__contains__("order"):
-                order = option.get("order")
-                del option["order"]
-            sql += " where {}".format(" AND ".join(parse_option(k, v) for k, v in option.items()))
-            print(order)
-            if bool(order) and isinstance(order, dict):
-                """
-                "order" : {"id" : "up"} -> order by id ASC
-                "order" : {"id" : "up", "name" : "down"} -> order by id ASC, name DESC
-                """
-                sql += " order by {}".format(", ".join(parse_order(k, v) for k, v in order.items()))
+    @staticmethod
+    def read(type: Type[AbstractEntity], connection: Connection = False, keys: list[str] = ["*"],
+             option: dict[str, Any] = {}, group: list[str] = [], size: int = -1, order: dict = {}, link: bool = False,
+             logic: str = "AND") -> list[tuple] or list[type.__class__]:
+        return ORM.query(type, connection, keys, option, group, size, order, logic, link=link)
 
-        print(sql)
-        cursor = connection.cursor()
-        cursor.execute(sql)
-        result = cursor.fetchall()
+    @staticmethod
+    def readFirst(type: Type[AbstractEntity], connection: Connection = False, keys: list[str] = ["*"],
+                  option: dict[str, Any] = {}, group: list[str] = [], size: int = -1, order: dict = {},
+                  link: bool = False,
+                  logic: str = "AND") -> tuple or type.__class__ or None:
+        list = ORM.query(type, connection, keys, option, group, size, order, logic, link=link)
 
-        if keys != ["*"]: # si tout les param sont pas demandé je ne peux construire les objets
-            return result
+        if len(list) > 0:
+            return list[0]
         else:
-            list = []
-            for row in result:
-                list.append(type.to_object(row))
-            return list
+            return None
 
-    def get_table_name(self) -> str:
-        return self.__class__.__name__
-
-    def save(self, connection: Connection) -> None:
+    def save(self, connection: Connection = context()) -> None:
         """
         permet de sauvegarder en base de donnée un objet
         :param connection: instance d'une base de donnée sqlite
@@ -119,151 +51,248 @@ class BdoEntity(AbstractEntity):
         """
         json = self.to_json()
         sql = "INSERT OR REPLACE INTO {}({}) VALUES({})".format(self.get_table_name(), ','.join(json.keys()),
-                                                                ','.join(transform_for_sql(k) for k in json.values()))
+                                                                ','.join(
+                                                                    ORM.transform_for_sql(k) for k in json.values()))
+
+        if not connection:
+            connection = context()
         print(sql)
+        print(connection)
         cursor = connection.cursor()
+
         cursor.execute(sql)
         connection.commit()
 
 
 class Aptitudes(BdoEntity):
 
-    def __init__(self, aptitudes_id: int, competences_id: str, aptitudes_nom: str) -> None:
+    def __init__(self, aptitudes_id: int, competences_id: str or AbstractEntity, aptitudes_nom: str,
+                 connection: Connection = context(),
+                 link=False) -> None:
         super().__init__()
         self.aptitudes_id = aptitudes_id
-        self.competences_id = competences_id
+        if not connection:
+            connection = context()
+        if link:
+            self.competences_id = Competences.readFirst(Competences, connection,
+                                                        option={"competences_id": competences_id})
+        else:
+            self.competences_id = competences_id
         self.aptitudes_nom = aptitudes_nom
 
     @staticmethod
-    def to_object(args: tuple[str]):
+    def to_object(args: tuple[str], link=False):
         if len(args) != 3: return False
-        return Aptitudes(int(args[0]), args[1], args[2])
+        return Aptitudes(int(args[0]), args[1], args[2], link=link)
+
+    def get_key(self):
+        return self.aptitudes_id
 
 
 class Competences(BdoEntity):
 
-    def __init__(self, competences_id: str, domaines_id: str, competences_nom: str, competences_seuil: float) -> None:
+    def __init__(self, competences_id: str, domaines_id: str or AbstractEntity, competences_nom: str,
+                 competences_seuil: float,
+                 connection: Connection = context(), link=False) -> None:
         super().__init__()
         self.competences_id = competences_id
-        self.domaines_id = domaines_id
+        if not connection:
+            connection = context()
+        if link:
+            self.domaines_id = Domaines.readFirst(Domaines, connection, option={"domaines_id": domaines_id})
+        else:
+            self.domaines_id = domaines_id
         self.competences_nom = competences_nom
         self.competences_seuil = competences_seuil
 
     @staticmethod
-    def to_object(args: tuple[str]):
+    def to_object(args: tuple[str], link=False):
         if len(args) != 4: return False
-        return Competences(args[0], args[1], args[2], float(args[3]))
+        return Competences(args[0], args[1], args[2], float(args[3]), link=link)
+
+    def get_key(self):
+        return self.competences_id
 
 
 class Domaines(BdoEntity):
 
-    def __init__(self, domaines_id: str, domaines_nom: str) -> None:
+    def __init__(self, domaines_id: str, domaines_nom: str, connection: Connection = context(), link=False) -> None:
         super().__init__()
+        if not connection:
+            connection = context()
         self.domaines_id = domaines_id
         self.domaines_nom = domaines_nom
 
     @staticmethod
-    def to_object(args: tuple[str]):
+    def to_object(args: tuple[str], link=False):
         if len(args) != 2: return False
-        return Domaines(args[0], args[1])
+        return Domaines(args[0], args[1], link=link)
+
+    def get_key(self):
+        return self.domaines_id
 
 
 class Evaluations(BdoEntity):
 
-    def __init__(self, evaluations_id: int, matiere_id: int, aptitudes_id: int, evaluations_nom: str) -> None:
+    def __init__(self, evaluations_id: int, matiere_id: int or AbstractEntity, aptitudes_id: int or AbstractEntity,
+                 evaluations_nom: str,
+                 connection: Connection = context(), link=False) -> None:
         super().__init__()
         self.evaluations_id = evaluations_id
-        self.matiere_id = matiere_id
-        self.aptitudes_id = aptitudes_id
+        if not connection:
+            connection = context()
+        if link:
+            self.matiere_id = Matieres.readFirst(Matieres, connection, option={"matiere_id": matiere_id})
+            self.aptitudes_id = Aptitudes.readFirst(Aptitudes, connection, option={"aptitudes_id": aptitudes_id})
+        else:
+            self.matiere_id = matiere_id
+            self.aptitudes_id = aptitudes_id
+
         self.evaluations_nom = evaluations_nom
 
     @staticmethod
-    def to_object(args: tuple[str]):
+    def to_object(args: tuple[str], link=False):
         if len(args) != 4: return False
-        return Evaluations(int(args[0]), int(args[1]), int(args[2]), args[3])
+        return Evaluations(int(args[0]), int(args[1]), int(args[2]), args[3], link=link)
+
+    def get_key(self):
+        return self.evaluations_id
 
 
 class Matieres(BdoEntity):
 
-    def __init__(self, matieres_id: int, matieres_nom: int, enseignant_id: int) -> None:
+    def __init__(self, matieres_id: int, matieres_nom: int, enseignant_id: int or AbstractEntity,
+                 connection: Connection = context(),
+                 link=False) -> None:
         super().__init__()
         self.matieres_id = matieres_id
+        if not connection:
+            connection = context()
         self.matieres_nom = matieres_nom
-        self.enseignant_id = enseignant_id
+        if link:
+            self.enseignant_id = Enseignant.readFirst(Enseignant, connection, option={"enseignant_id": enseignant_id})
+        else:
+            self.enseignant_id = enseignant_id
 
     @staticmethod
-    def to_object(args: tuple[str]):
+    def to_object(args: tuple[str], link=False):
         if len(args) != 3: return False
-        return Matieres(int(args[0]), args[1], int(args[1]))
+        return Matieres(int(args[0]), args[1], int(args[1]), link=link)
+
+    def get_key(self):
+        return self.matieres_id
 
 
 class Etudiant(BdoEntity):
 
-    def __init__(self, etudiant_id: str, etudiant_prenom: str, etudiant_nom: str) -> None:
+    def __init__(self, etudiant_id: str, etudiant_prenom: str, etudiant_nom: str, connection: Connection = context(),
+                 link=False) -> None:
         super().__init__()
         self.etudiant_id = etudiant_id
+        if not connection:
+            connection = context()
         self.etudiant_prenom = etudiant_prenom
         self.etudiant_nom = etudiant_nom
 
     @staticmethod
-    def to_object(args: tuple[str]):
+    def to_object(args: tuple[str], link=False):
         if len(args) != 3: return False
-        return Etudiant(args[0], args[1], args[2])
+        return Etudiant(args[0], args[1], args[2], link=link)
+
+    def get_key(self):
+        return self.etudiant_id
 
 
 class Syllabus(BdoEntity):
 
-    def __init__(self, syllabus_id: int, syllabus_nom: str, etudiant_id: str) -> None:
+    def __init__(self, syllabus_id: int, syllabus_nom: str, etudiant_id: str or AbstractEntity,
+                 connection: Connection = context(),
+                 link=False) -> None:
         super().__init__()
         self.syllabus_id = syllabus_id
+        if not connection:
+            connection = context()
         self.syllabus_nom = syllabus_nom
-        self.etudiant_id = etudiant_id
+        if link:
+            self.etudiant_id = Etudiant.readFirst(Etudiant, connection, option={"etudiant_id": etudiant_id})
+        else:
+            self.etudiant_id = etudiant_id
 
     @staticmethod
-    def to_object(args: tuple[str]):
+    def to_object(args: tuple[str], link=False):
         if len(args) != 3: return False
-        return Syllabus(int(args[0]), args[1], str(args[2]))
+        return Syllabus(int(args[0]), args[1], str(args[2]), link=link)
+
+    def get_key(self):
+        return self.syllabus_id
 
 
 class Enseignant(BdoEntity):
 
-    def __init__(self, enseignant_id: int, enseignant_nom: str, enseignant_prenom: str) -> None:
+    def __init__(self, enseignant_id: int, enseignant_nom: str, enseignant_prenom: str,
+                 connection: Connection = context(), link=False) -> None:
         super().__init__()
         self.enseignant_id = enseignant_id
+        if not connection:
+            connection = context()
         self.enseignant_nom = enseignant_nom
         self.enseignant_prenom = enseignant_prenom
 
     @staticmethod
-    def to_object(args: tuple[str]):
+    def to_object(args: tuple[str], link=False):
         if len(args) != 3: return False
-        return Enseignant(int(args[0]), args[1], args[2])
+        return Enseignant(int(args[0]), args[1], args[2], link=link)
+
+    def get_key(self):
+        return self.enseignant_id
 
 
 class Validations(BdoEntity):
 
-    def __init__(self, validations_id: int, aptitudes_id: int, evaluations_id: int, etudiant_id: int,
-                 validation_resultat: int) -> None:
+    def __init__(self, validations_id: int, aptitudes_id: int or AbstractEntity, evaluations_id: int or AbstractEntity,
+                 etudiant_id: int or AbstractEntity,
+                 validation_resultat: int, connection: Connection = context(), link=False) -> None:
         super().__init__()
         self.validations_id = validations_id
-        self.aptitudes_id = aptitudes_id
-        self.evaluations_id = evaluations_id
-        self.etudiant_id = etudiant_id
+        if not connection:
+            connection = context()
         self.validation_resultat = validation_resultat
+        if link:
+            self.aptitudes_id = Matieres.readFirst(Aptitudes, connection, option={"aptitudes_id": aptitudes_id})
+            self.evaluations_id = Evaluations.readFirst(Evaluations, connection,
+                                                        option={"evaluations_id": evaluations_id})
+            self.etudiant_id = Etudiant.readFirst(Etudiant, connection, option={"etudiant_id": etudiant_id})
+        else:
+            self.aptitudes_id = aptitudes_id
+            self.evaluations_id = evaluations_id
+            self.etudiant_id = etudiant_id
 
     @staticmethod
-    def to_object(args: tuple[str]):
+    def to_object(args: tuple[str], link=False):
         if len(args) != 5: return False
-        return Validations(int(args[0]), int(args[1]), int(args[2]), int(args[3]), int(args[4]))
+        return Validations(int(args[0]), int(args[1]), int(args[2]), int(args[3]), int(args[4]), link=link)
+
+    def get_key(self):
+        return self.validations_id
 
 
 class SyllabusMatieres(BdoEntity):
 
-    def __init__(self, matiere_id: int, syllabus_id: int) -> None:
+    def __init__(self, matiere_id: int or AbstractEntity, syllabus_id: int or AbstractEntity,
+                 connection: Connection = context(), link=False) -> None:
         super().__init__()
         self.matiere_id = matiere_id
+        if not connection:
+            connection = context()
         self.syllabus_id = syllabus_id
+        if link:
+            self.matiere_id = Matieres.readFirst(Matieres, connection, option={"matiere_id": matiere_id})
+            self.syllabus_id = Syllabus.readFirst(Syllabus, connection, option={"syllabus_id": syllabus_id})
+        else:
+            self.matiere_id = matiere_id
+            self.syllabus_id = syllabus_id
 
     @staticmethod
-    def to_object(args: tuple[str]):
+    def to_object(args: tuple[str], link=False):
         if len(args) != 2: return False
-        return SyllabusMatieres(int(args[0]), int(args[1]))
+        return SyllabusMatieres(int(args[0]), int(args[1]), link=link)

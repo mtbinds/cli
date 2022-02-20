@@ -1,14 +1,16 @@
-import bdd.entity as entity
 import sqlite3
 
-connection = sqlite3.connect('init/bdd.db')
+from src.bdd.entity import Etudiant, Syllabus
+from src.bdd.orm import connect
 
-a = entity.Domaines("alo2", "alo")
-print(a)
-a.save(connection)
+connect(sqlite3.connect('init/bdd.db'))
+
+e = Etudiant("1", "test1", "test2")
+s = Syllabus(0, "syl1", e)
+print(s)
+
+s.save()
 print(["*"] == ["*"])
-l = entity.Syllabus.read(entity.Syllabus, connection,
-                         option={"syllabus_id" : {"min" : 0, "max" : 3, "equals" : True}, "syllabus_nom" : "nom",
-                                 "order" : {"syllabus_id" : "up", "syllabus_nom" : "down"}})
+l = Syllabus.read(Syllabus, link=True)
 for b in l:
     print(b)
