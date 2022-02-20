@@ -56,8 +56,8 @@ class BdoEntity(AbstractEntity):
 
         if not connection:
             connection = context()
-        print(sql)
-        print(connection)
+        #print(sql)
+        #print(connection)
         cursor = connection.cursor()
 
         cursor.execute(sql)
