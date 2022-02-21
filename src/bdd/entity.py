@@ -186,7 +186,7 @@ class Matieres(BdoEntity):
     @staticmethod
     def to_object(args: tuple[str], link=False):
         if len(args) != 3: return False
-        return Matieres(int(args[0]), args[1], int(args[1]), link=link)
+        return Matieres(int(args[0]), args[1], int(args[2]), link=link)
 
     def get_key(self):
         return self.matieres_id
