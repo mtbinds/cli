@@ -6,18 +6,23 @@ from src.bdd.orm import ORM, AbstractEntity, context
 
 class BdoEntity(AbstractEntity):
     """
-    cette classe est la base de toute les entité lié a notre application, elle va aussi servir ORM en mappant les objet pour les sauvegarder en base de donnée
-    ou transformer se qu'il y a en base de donnée en objet
+    Cette classe est la base de toute les entités liées à notre application, elle va aussi servir d'ORM en mappant les
+    objets pour les sauvegarder en base de données ou transformer ce qu'il y a en base de données en objet
     """
 
     @staticmethod
     def read_all(type: Type[AbstractEntity], connection: Connection = context()) -> list[type.__class__]:
         """
-        fonction qui retourne une liste d'objet lié a type
-        :param type: classe demandé en retour dans la liste
-        :param connection: instance de la base de donnée sqlite
-        :return:
+        Fonction qui retourne une liste d'objet liée à type
+
+        @param type: Classe demandée en retour dans la liste
+        @type type:
+        @param connection: Instance de la base de donnée sqlite
+        @type connection:
+        @return:
+        @rtype:
         """
+
         return BdoEntity.read(type, connection)
 
     @staticmethod
@@ -45,10 +50,14 @@ class BdoEntity(AbstractEntity):
 
     def save(self, connection: Connection = context()) -> None:
         """
-        permet de sauvegarder en base de donnée un objet
-        :param connection: instance d'une base de donnée sqlite
-        :return:
+        Permet de sauvegarder en base de données un objet
+
+        @param connection: Instance d'une base de données sqlite
+        @type connection:
+        @return:
+        @rtype:
         """
+
         json = self.to_json()
         sql = "INSERT OR REPLACE INTO {}({}) VALUES({})".format(self.get_table_name(), ','.join(json.keys()),
                                                                 ','.join(
