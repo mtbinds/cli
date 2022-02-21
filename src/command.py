@@ -1,5 +1,8 @@
 import re
-
+import json
+import sys
+from os import listdir
+from os.path import isfile, join
 
 class Command:
     """
@@ -126,26 +129,6 @@ def help(context):
             print(json["command"])
 
 
-manager = CommandManager()
-
-c = Command({
-    "names": ["aide", "help"],
-    "regex": "",
-    "description": "une description",
-    "visible": True
-})
-
-c1 = Command({
-    "names": ["menfou"],
-    "regex": "\w+",
-    "description": "palu menfou",
-    "visible": True
-})
-
-manager.register_command(c, help)
-manager.register_command(c1)
-manager.exec_command("help")
-manager.exec_command("menfou", "salut")
 
 '''
 Optionnel -> Description de comment sera notre json
@@ -167,3 +150,44 @@ for (command in commands):
     if command.names.contain(help):
         command.exec();
 '''
+def main():
+    manager = CommandManager()
+    '''
+    onlyfiles = [f for f in listdir("./commands") if isfile(join("./commands", f))]
+    for fileName in onlyfiles:    
+        with open('commands/'+fileName) as file:
+            data = json.load(file)
+        c = Command(data)
+        manager.register_command(c)
+    '''
+    
+    '''
+    Enregistrement des commandes via leurs fichiers JSON
+    '''
+    with open('commands/help.json') as file:
+        data = json.load(file)
+    c = Command(data)
+    manager.register_command(c, help)
+    
+    with open('commands/test.json') as file:
+        data = json.load(file)
+    c = Command(data)
+    manager.register_command(c)
+    
+    '''
+    Gestion des Command Line Arguments
+    '''
+    if(len(sys.argv) > 2):
+        param = ""
+        for i in range(2, len(sys.argv)):
+            param += " "+sys.argv[i] 
+        manager.exec_command(sys.argv[1],param)
+    else :
+        if(len(sys.argv) > 1) :
+            manager.exec_command(sys.argv[1])
+        else :
+            print('Not enough arguments, please try again as follow : py command.py [command] [parameter(s)]')
+    
+
+if __name__ == "__main__":
+    main()
