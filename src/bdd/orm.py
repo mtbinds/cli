@@ -254,7 +254,7 @@ class ORM:
         if size > 0:
             result = result[:size]
 
-        if keys != ["*"]:  # si tout les param sont pas demandé je ne peux construire les objets
+        if keys != ["*"]:  # si tous les params ne sont pas demandés on ne peut pas construire les objets
             return result
         else:
             array = []

@@ -170,7 +170,7 @@ class Evaluations(BdoEntity):
 
 class Matieres(BdoEntity):
 
-    def __init__(self, matieres_id: int, matieres_nom: int, enseignant_id: int or AbstractEntity,
+    def __init__(self, matieres_id: int, matieres_nom: str, enseignant_id: int or AbstractEntity,
                  connection: Connection = context(),
                  link=False) -> None:
         super().__init__()
