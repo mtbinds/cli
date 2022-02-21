@@ -1,4 +1,8 @@
 import re
+import sys
+
+import json
+from src.bdd.entity import Etudiant
 
 
 class Command:
@@ -7,25 +11,35 @@ class Command:
     et visible (true = met en valeur la commande)
     """
 
-    def __init__(self, json: dict):
+    def __init__(self, data: dict or str):
         """
         Constructeur par défaut
 
         @param json: Dictionnaire contenant les paramètres de la commande
         @type json: Dictionnaire
         """
+        if isinstance(data, str):  # si un str alors je charge un fichier json
+            if re.search("\./json/\w+\.json", data):  # si je donne le path alors je le charge sans modification
+                f = open(data)
+                self.init(json.load(f))
+            else:  # sinon je tente de le trouver par moi même
+                f = open("./json/" + data + ".json")
+                self.init(json.load(f))
+        elif isinstance(data, dict):
+            self.init(data)
 
-        if json.__contains__("names"):
-            self.names = json["names"]
+    def init(self, data):
+        if data.__contains__("names"):
+            self.names = data["names"]
 
-        if json.__contains__("regex"):
-            self.regex = json["regex"]
+        if data.__contains__("regex"):
+            self.regex = data["regex"]
 
-        if json.__contains__("description"):
-            self.description = json["description"]
+        if data.__contains__("description"):
+            self.description = data["description"]
 
-        if json.__contains__("visible"):
-            self.visible = json["visible"]
+        if data.__contains__("visible"):
+            self.visible = data["visible"]
         pass
 
     def __str__(self):
@@ -71,47 +85,60 @@ class CommandManager:
             "code": code
         })
 
-    def get_command_by_names(self, name: str, parameter=""):
+    def get_command_by_names(self, name: str, parameter=sys.argv[2:]):
         """
         Permet d'avoir une commande selon le nom passé en paramètre
 
         @param name: Une chaîne de caractères contenant le nom de la commande
         @type name: String
         @param parameter: Défini les paramètres de la commande soit une chaine de caractères
-        @type parameter: String
+        @type parameter: Tableau de String
         @return: Un dictionnaire (json) soit vide soit contenant la commande
         @rtype: Dictionnaire
         """
-        for json in self.commands:
-            if json["command"].names.__contains__(name) and re.search(json["command"].regex, parameter):
-                return json
+        for data in self.commands:
+            if data["command"].names.__contains__(name) and (re.search(data["command"].regex, ' '.join(parameter)) or (
+                    len(parameter) > 0 and parameter[0] == "--help")):
+                return data
         return {}
 
-    def exec_command(self, name: str, parameter=""):
+    def exec_command(self, name: str, parameter=sys.argv[2:]):
         """
         Récupère la commande et l'exécute
 
         @param name: Une chaîne de caractères contenant le nom de la commande
         @type name: String
         @param parameter: Option de commande demandé par l'utilisateur
-        @type parameter: String
+        @type parameter: Tableau de String
         @return:
         @rtype:
         """
-        json = self.get_command_by_names(name, parameter)
-        if json.__contains__("command") and json.__contains__("code"):
-            command = json["command"]
-            code = json["code"]
+        data = self.get_command_by_names(name, parameter)
+        if data.__contains__("command") and data.__contains__("code"):
+            command = data["command"]
+            code = data["code"]
             code({
                 "parameter": parameter,
                 "manager": self,
-                "command" : command
+                "command": command
             })
         else:
             print("not found")
 
 
-def help(context):
+def base_command(context, base_run, help_run, fail_run=lambda context: print("Error : \n\t" + vars(context))):
+    if context.__contains__("parameter"):
+        param = context["parameter"]
+        if len(param) > 0 and param[0] == "--help":
+            help_run(context)
+        elif not base_run(context):
+            fail_run(context)
+
+    else:
+        fail_run(context)
+
+
+def help_command(context):
     """
     Fonction d'aide par défaut
 
@@ -120,32 +147,71 @@ def help(context):
     @return:
     @rtype:
     """
-    if context.__contains__("manager"):
-        manager = context["manager"]
-        for json in manager.commands:
-            print(json["command"])
+
+    def run(context):
+        if context.__contains__("manager"):
+            manager = context["manager"]
+            for data in manager.commands:
+                print(data["command"])
+            return True
+        return False
+
+    base_command(context, run, lambda context: print("on affiche help"))
 
 
-manager = CommandManager()
+def make_query(parameter):
+    option = {}
+    group = []
+    size = -1
+    order = {}
 
-c = Command({
-    "names": ["aide", "help"],
-    "regex": "",
-    "description": "une description",
-    "visible": True
-})
+    actual = "-o"
 
-c1 = Command({
-    "names": ["menfou"],
-    "regex": "\w+",
-    "description": "palu menfou",
-    "visible": True
-})
+    for p in parameter:
+        if re.search("-\w", p):  # switch de mode, -o option, -order order, -size size, -g group
+            actual = p
+        elif re.search("\w\=\w", p):
+            split = p.split("=")
+            if actual == "-o":
+                option[split[0]] = split[1]  # -o id=1 name=alo
+            elif actual == "-order":  # -order id=up
+                order[split[0]] = split[1]
+        else:
+            if actual == "-size":  # -size 1
+                size = int(p)
+            elif actual == "-g":  # -g id name
+                group.append(p)
+    return option, group, size, order
 
-manager.register_command(c, help)
-manager.register_command(c1)
-manager.exec_command("help")
-manager.exec_command("menfou", "salut")
+
+def student_command(context):
+    """
+    fonction quand une requete du style
+        - student -o etudiant_prenom=test2 -order etudiant_id=down
+        - student
+    est utilisé en argument
+    :param context:
+    :return:
+    """
+
+    def run(context):
+        if context.__contains__("parameter"):
+            parameter = context["parameter"]
+            option, group, size, order = make_query(parameter)
+            query = Etudiant.read(Etudiant, option=option, group=group, size=size, order=order)
+            for entity in query:
+                print(entity)
+            return True
+        return False
+
+    def help(context):
+        print("help")
+
+    def fail(context):
+        print("error")
+
+    base_command(context, run, help)
+
 
 '''
 Optionnel -> Description de comment sera notre json
