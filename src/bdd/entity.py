@@ -194,7 +194,7 @@ class Matieres(BdoEntity):
 
 class Etudiant(BdoEntity):
 
-    def __init__(self, etudiant_id: str, etudiant_prenom: str, etudiant_nom: str, connection: Connection = context(),
+    def __init__(self, etudiant_id: str, etudiant_nom: str, etudiant_prenom: str, connection: Connection = context(),
                  link=False) -> None:
         super().__init__()
         self.etudiant_id = etudiant_id
