@@ -1,0 +1,8 @@
+{
+    "names": [
+      "syllabus"
+    ],
+    "regex": "\\w*",
+    "description": "une description",
+    "visible": true
+  }

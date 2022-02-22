@@ -2,7 +2,7 @@ import re
 import sys
 
 import json
-from src.bdd.entity import Etudiant
+from bdd.entity import *
 
 
 class Command:
@@ -212,7 +212,166 @@ def student_command(context):
 
     base_command(context, run, help)
 
+def competence_command(context):
+    """
+    fonction quand une requete du style
+        - competence -o competences_seuil=1 -order competences_id=up
+        - competence -o competences_nom=C4
+    est utilisé en argument
+    :param context:
+    :return:[competence]
+    """
 
+    def run(context):
+        if context.__contains__("parameter"):
+            parameter = context["parameter"]
+            option, group, size, order = make_query(parameter)
+            query = Competences.read(Competences, option=option, group=group, size=size, order=order)
+            for entity in query:
+                print(entity)
+            return True
+        return False
+
+    def help(context):
+        print("help")
+
+    def fail(context):
+        print("error")
+
+    base_command(context, run, help)
+    
+def domaine_command(context):
+    """
+    fonction quand une requete du style
+        - domain -o domaines_nom=D2 -order domaines_id=down
+        - domaine -o domaines_nom=D1
+    est utilisé en argument
+    :param context:
+    :return:[domaine]
+    """
+
+    def run(context):
+        if context.__contains__("parameter"):
+            parameter = context["parameter"]
+            option, group, size, order = make_query(parameter)
+            query = Domaines.read(Domaines, option=option, group=group, size=size, order=order)
+            for entity in query:
+                print(entity)
+            return True
+        return False
+
+    def help(context):
+        print("help")
+
+    def fail(context):
+        print("error")
+
+    base_command(context, run, help)
+
+def evaluation_command(context):
+    """
+    fonction quand une requete du style
+        - evaluation
+    est utilisé en argument
+    :param context:
+    :return:[evaluation]
+    """
+    def run(context):
+        if context.__contains__("parameter"):
+            parameter = context["parameter"]
+            option, group, size, order = make_query(parameter)
+            query = Evaluations.read(Evaluations, option=option, group=group, size=size, order=order)
+            for entity in query:
+                print(entity)
+            return True
+        return False
+
+    def help(context):
+        print("help")
+
+    def fail(context):
+        print("error")
+
+    base_command(context, run, help)
+
+
+def matiere_command(context):
+    """
+    fonction quand une requete du style
+        - matiere -o matieres_nom=Web
+    est utilisé en argument
+    :param context:
+    :return:[matiere]
+    """
+    def run(context):
+        if context.__contains__("parameter"):
+            parameter = context["parameter"]
+            option, group, size, order = make_query(parameter)
+            query = Matieres.read(Matieres, option=option, group=group, size=size, order=order)
+            for entity in query:
+                print(entity)
+            return True
+        return False
+
+    def help(context):
+        print("help")
+
+    def fail(context):
+        print("error")
+
+    base_command(context, run, help)
+
+def syllabus_command(context):
+    """
+    fonction quand une requete du style
+        - syllabus -o etudiant_id=1
+    est utilisé en argument
+    :param context:
+    :return:[syllabus]
+    """
+    def run(context):
+        if context.__contains__("parameter"):
+            parameter = context["parameter"]
+            option, group, size, order = make_query(parameter)
+            query = Syllabus.read(Syllabus, option=option, group=group, size=size, order=order)
+            for entity in query:
+                print(entity)
+            return True
+        return False
+
+    def help(context):
+        print("help")
+
+    def fail(context):
+        print("error")
+
+    base_command(context, run, help)
+    
+def validation_command(context):
+    """
+    fonction quand une requete du style
+        - validation -o aptitudes_id=1 -o evaluations_id=1
+    est utilisé en argument
+    :param context:
+    :return:[validation]
+    """
+    def run(context):
+        if context.__contains__("parameter"):
+            parameter = context["parameter"]
+            option, group, size, order = make_query(parameter)
+            query = Validations.read(Validations, option=option, group=group, size=size, order=order)
+            for entity in query:
+                print(entity)
+            return True
+        return False
+
+    def help(context):
+        print("help")
+
+    def fail(context):
+        print("error")
+
+    base_command(context, run, help)
 '''
 Optionnel -> Description de comment sera notre json
 
@@ -233,44 +392,3 @@ for (command in commands):
     if command.names.contain(help):
         command.exec();
 '''
-def main():
-    manager = CommandManager()
-    '''
-    onlyfiles = [f for f in listdir("./commands") if isfile(join("./commands", f))]
-    for fileName in onlyfiles:    
-        with open('commands/'+fileName) as file:
-            data = json.load(file)
-        c = Command(data)
-        manager.register_command(c)
-    '''
-    
-    '''
-    Enregistrement des commandes via leurs fichiers JSON
-    '''
-    with open('commands/help.json') as file:
-        data = json.load(file)
-    c = Command(data)
-    manager.register_command(c, help)
-    
-    with open('commands/test.json') as file:
-        data = json.load(file)
-    c = Command(data)
-    manager.register_command(c)
-    
-    '''
-    Gestion des Command Line Arguments
-    '''
-    if(len(sys.argv) > 2):
-        param = ""
-        for i in range(2, len(sys.argv)):
-            param += " "+sys.argv[i] 
-        manager.exec_command(sys.argv[1],param)
-    else :
-        if(len(sys.argv) > 1) :
-            manager.exec_command(sys.argv[1])
-        else :
-            print('Not enough arguments, please try again as follow : py command.py [command] [parameter(s)]')
-    
-
-if __name__ == "__main__":
-    main()

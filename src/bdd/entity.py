@@ -1,7 +1,7 @@
 from sqlite3 import Connection
 from typing import Any, Type
 
-from src.bdd.orm import ORM, AbstractEntity, context
+from bdd.orm import ORM, AbstractEntity, context
 
 
 class BdoEntity(AbstractEntity):
@@ -193,7 +193,6 @@ class Matieres(BdoEntity):
 
 
 class Etudiant(BdoEntity):
-
     def __init__(self, etudiant_id: str, etudiant_nom: str, etudiant_prenom: str, connection: Connection = context(),
                  link=False) -> None:
         super().__init__()

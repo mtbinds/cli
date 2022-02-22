@@ -1,8 +1,8 @@
 import sqlite3
 
-from src.bdd.entity import Competences, Etudiant, Enseignant, Domaines, Evaluations, Aptitudes, Matieres, \
+from bdd.entity import Competences, Etudiant, Enseignant, Domaines, Evaluations, Aptitudes, Matieres, \
     SyllabusMatieres, Syllabus, Validations
-from src.bdd.orm import connect
+from bdd.orm import connect
 
 
 def insert(Entity, *args):
