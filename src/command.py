@@ -5,9 +5,6 @@ from pathlib import Path
 
 root = Path(__file__).parent
 
-import json
-from src.bdd.entity import *
-
 
 class Command:
     """
@@ -157,14 +154,21 @@ def help_command(context):
         if context.__contains__("manager"):
             manager = context["manager"]
             for data in manager.commands:
-                print(data["command"])
+                if data["command"].visible:
+                    print(data["command"])
             return True
         return False
 
-    base_command(context, run, lambda context: print("on affiche help"))
+    base_command(context, run, lambda ctx: print("on affiche help"))
 
 
 def make_query(parameter):
+    """
+    Permet de construire la requête à l'ORM en fonction de ce que l'on donne en paramètre
+
+    :param parameter:
+    :return:
+    """
     option = {}
     group = []
     size = -1
@@ -175,7 +179,7 @@ def make_query(parameter):
     for p in parameter:
         if re.search("-\w", p):  # switch de mode, -o option, -order order, -size size, -g group
             actual = p
-        elif re.search("\w\=\w", p):
+        elif re.search("\w=\w", p):  # machin=machin
             split = p.split("=")
             if actual == "-o":
                 option[split[0]] = split[1]  # -o id=1 name=alo
@@ -186,6 +190,7 @@ def make_query(parameter):
                 size = int(p)
             elif actual == "-g":  # -g id name
                 group.append(p)
+
     return option, group, size, order
 
 
@@ -217,6 +222,7 @@ def student_command(context):
 
     base_command(context, run, help)
 
+
 def competence_command(context):
     """
     fonction quand une requete du style
@@ -244,7 +250,8 @@ def competence_command(context):
         print("error")
 
     base_command(context, run, help)
-    
+
+
 def domaine_command(context):
     """
     fonction quand une requete du style
@@ -273,6 +280,7 @@ def domaine_command(context):
 
     base_command(context, run, help)
 
+
 def evaluation_command(context):
     """
     fonction quand une requete du style
@@ -281,6 +289,7 @@ def evaluation_command(context):
     :param context:
     :return:[evaluation]
     """
+
     def run(context):
         if context.__contains__("parameter"):
             parameter = context["parameter"]
@@ -308,6 +317,7 @@ def matiere_command(context):
     :param context:
     :return:[matiere]
     """
+
     def run(context):
         if context.__contains__("parameter"):
             parameter = context["parameter"]
@@ -326,6 +336,7 @@ def matiere_command(context):
 
     base_command(context, run, help)
 
+
 def syllabus_command(context):
     """
     fonction quand une requete du style
@@ -334,6 +345,7 @@ def syllabus_command(context):
     :param context:
     :return:[syllabus]
     """
+
     def run(context):
         if context.__contains__("parameter"):
             parameter = context["parameter"]
@@ -351,7 +363,8 @@ def syllabus_command(context):
         print("error")
 
     base_command(context, run, help)
-    
+
+
 def validation_command(context):
     """
     fonction quand une requete du style
@@ -360,6 +373,7 @@ def validation_command(context):
     :param context:
     :return:[validation]
     """
+
     def run(context):
         if context.__contains__("parameter"):
             parameter = context["parameter"]
