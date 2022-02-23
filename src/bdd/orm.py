@@ -83,7 +83,7 @@ class ORM:
         @rtype:
         """
 
-        print("key : {}, value : {}".format(key, value))
+        # print("key : {}, value : {}".format(key, value))
         if not isinstance(value, dict):
             return key + symbol + ORM.transform_for_sql(value)
 
