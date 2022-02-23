@@ -1,7 +1,7 @@
 from sqlite3 import Connection
 from typing import Any, Type
 
-from bdd.orm import ORM, AbstractEntity, context
+from src.bdd.orm import ORM, AbstractEntity, context
 
 
 class BdoEntity(AbstractEntity):
