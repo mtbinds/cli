@@ -1,5 +1,6 @@
 import sqlite3
 
+from src.bdd.entity import Etudiant, Syllabus
 from src.bdd.orm import connect
 from src.command import *
 
