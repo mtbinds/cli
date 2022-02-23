@@ -1,11 +1,10 @@
 import sqlite3
-from pathlib import Path
 
 from src.bdd.orm import connect
 from src.command import *
 
 root = Path(__file__).parent
-print(root)
+
 if __name__ == '__main__':
     connect(sqlite3.connect(str(root) + '/init/bdd.db'))
     e = Etudiant("1", "test1", "test2")
@@ -32,13 +31,6 @@ if __name__ == '__main__':
     c_syllabus = Command("syllabus")
     c_validations = Command("validation")
 
-    c1 = Command({
-        "names": ["menfou"],
-        "regex": "\w+",
-        "description": "palu menfou",
-        "visible": True
-    })
-
     manager.register_command(c_help, help_command)
     manager.register_command(c_student, student_command)
     manager.register_command(c_competences, competence_command)
@@ -47,7 +39,6 @@ if __name__ == '__main__':
     manager.register_command(c_matieres, matiere_command)
     manager.register_command(c_syllabus, syllabus_command)
     manager.register_command(c_validations, validation_command)
-    manager.register_command(c1)
 
     print("========================================")
     '''
