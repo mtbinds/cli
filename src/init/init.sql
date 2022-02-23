@@ -68,18 +68,19 @@ CREATE TABLE SyllabusMatieres(
 --    Domaines    --
 --------------------
 CREATE TABLE Domaines(
-    domaines_id INT PRIMARY KEY NOT NULL,
-    domaines_nom VARCHAR(40)
+                         domaines_id  VARCHAR(255) PRIMARY KEY NOT NULL,
+                         domaines_nom VARCHAR(40)
 );
 -----------------------
 --    Competences    --
 -----------------------
-CREATE TABLE Competences(
-    competences_id VARCHAR(255) PRIMARY KEY NOT NULL,
-    domaines_id INT,
-    competences_nom VARCHAR(40),
+CREATE TABLE Competences
+(
+    competences_id    VARCHAR(255) PRIMARY KEY NOT NULL,
+    domaines_id       VARCHAR(255),
+    competences_nom   VARCHAR(40),
     competences_seuil FLOAT,
-    FOREIGN KEY(domaines_id) REFERENCES Domaines(domaines_id)
+    FOREIGN KEY (domaines_id) REFERENCES Domaines (domaines_id)
 );
 ---------------------
 --    Aptitudes    --
