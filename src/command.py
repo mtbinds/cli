@@ -1,8 +1,12 @@
+import os
 import re
 import sys
+from pathlib import Path
+
+root = Path(__file__).parent
 
 import json
-from bdd.entity import *
+from src.bdd.entity import *
 
 
 class Command:
@@ -21,10 +25,11 @@ class Command:
         if isinstance(data, str):  # si un str alors je charge un fichier json
             if re.search("\./json/\w+\.json", data):  # si je donne le path alors je le charge sans modification
                 f = open(data)
-                self.init(json.load(f))
+                self.init(str(root) + "/" + json.load(f))
             else:  # sinon je tente de le trouver par moi même
-                f = open("./json/" + data + ".json")
-                self.init(json.load(f))
+                if os.path.isfile(str(root) + "/json/" + data + ".json"):
+                    f = open(str(root) + "/json/" + data + ".json")
+                    self.init(json.load(f))
         elif isinstance(data, dict):
             self.init(data)
 

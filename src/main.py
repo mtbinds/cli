@@ -1,13 +1,13 @@
 import sqlite3
-import sys
+from pathlib import Path
 
-from bdd.entity import Etudiant, Syllabus
-from bdd.orm import connect
-from command import *
+from src.bdd.orm import connect
+from src.command import *
 
+root = Path(__file__).parent
+print(root)
 if __name__ == '__main__':
-    connect(sqlite3.connect('init/bdd.db'))
-
+    connect(sqlite3.connect(str(root) + '/init/bdd.db'))
     e = Etudiant("1", "test1", "test2")
     etu = Etudiant("2", "test1", "test2")
     etu.save()
