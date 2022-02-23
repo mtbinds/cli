@@ -7,10 +7,13 @@
 
 <h3>Groupe CLI</h3>
 
-|Nom|Prénom|login|email| |--|--|--|--| | Bourgeaux | Maxence | bm142013 | maxence.bourgeaux@etu.univ-lehavre.fr | |
-Guyomar | Robin | gr161657 | robin.guyomar@etu.univ-lehavre.fr | | Labbe | Alexis | la172685 |
-alexis.labbe@etu.univ-lehavre.fr | | Planchon | Richard | pr172488 | richard.planchon@etu.univ-lehavre.fr | | Taoualit |
-Madijid | tm177375 | madjid.taoualit@etu.univ-lehavre.fr |
+|Nom|Prénom|login|email|
+|--|--|--|--| 
+| Bourgeaux | Maxence | bm142013 | maxence.bourgeaux@etu.univ-lehavre.fr |
+| Guyomar | Robin | gr161657 | robin.guyomar@etu.univ-lehavre.fr |
+| Labbe | Alexis | la172685 | alexis.labbe@etu.univ-lehavre.fr |
+| Planchon | Richard | pr172488 | richard.planchon@etu.univ-lehavre.fr |
+| Taoualit | Madijid | tm177375 | madjid.taoualit@etu.univ-lehavre.fr |
 
 ## Objectif
 
@@ -172,15 +175,3 @@ lors de la création d'un fils de cette classe.
 Les requetes serais extremement longue a expliquer, sachant que ce n'est pas le sujet premier de ce projet, veuillez
 retrouver [ici](./src/bdd/orm.py) le code qui est entièrement documenté avec des exemples.
 
-## Utilisation
-
-`/usr/bin/python3.9 -m src.main student -order etudiant_id=down`
-
-réponse
-
-```
-SELECT * from Etudiant ORDER BY etudiant_id DESC
-{'etudiant_id': '2', 'etudiant_prenom': 'test2', 'etudiant_nom': 'test1'}
-{'etudiant_id': '1', 'etudiant_prenom': 'test2', 'etudiant_nom': 'test1'}
-
-```
