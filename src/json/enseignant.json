@@ -1,0 +1,9 @@
+{
+    "names": [
+      "enseignant",
+      "teacher"
+    ],
+    "regex": "\\w*",
+    "description": "une description",
+    "visible": true
+}

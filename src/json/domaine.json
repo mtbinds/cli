@@ -1,0 +1,9 @@
+{
+    "names": [
+      "domain",
+      "domaine"
+    ],
+    "regex": "\\w*",
+    "description": "une description",
+    "visible": true
+  }

@@ -1,0 +1,8 @@
+{
+    "names": [
+      "competence"
+    ],
+    "regex": "\\w*",
+    "description": "une description",
+    "visible": true
+}

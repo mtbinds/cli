@@ -1,0 +1,8 @@
+{
+    "names": [
+      "evaluation"
+    ],
+    "regex": "\\w*",
+    "description": "une description",
+    "visible": true
+  }

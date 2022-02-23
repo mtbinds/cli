@@ -1,4 +1,5 @@
 import sqlite3
+
 connection = sqlite3.connect('bdd.db')
 cursor = connection.cursor()
 sql_file = open("init.sql")

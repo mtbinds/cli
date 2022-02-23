@@ -53,26 +53,37 @@ class ORM:
     @staticmethod
     def parse_option(option: dict[str, Any], logic: str):
         """
-        fonction qui va parser les options de recherche
-        :param option: le dictionnaire de recherche
-        :param logic: la logique de base de recherche (or ou and)
-        :return:
+        Fonction qui va parser les options de recherche
+
+        @param option: Le dictionnaire de recherche
+        @type option:
+        @param logic: La logique de base de recherche (or ou and)
+        @type logic:
+        @return:
+        @rtype:
         """
+
         if ORM.is_logic(
-                option):  # je regarde si l'option contient une "logic" cad est de la forme {"logic" : "...", "options" : {....}}
+                option):  # On regarde si l'option contient une "logic", c'est-à-dire si elle est de la forme {"logic" : "...", "options" : {....}}
             return ORM.parse_logic(option)
-        else:  # les options sont "basic" et sont joint par la logique par défauts
+        else:  # Les options sont "basic" et sont jointes par la logique par défaut
             return " {} ".format(logic).join(ORM.parse_unit_option(k, v) for k, v in option.items())
 
     @staticmethod
     def parse_unit_option(key, value, symbol="="):
         """
-        :param key: nom de la variable a imposer une condition
-        :param value: valeur pouvant etre un dictionnaire ou une valeur normal
-        :param symbol: symbol utilisé lors de la contidion
-        :return:
+
+        @param key: Nom de la condition à donner
+        @type key:
+        @param value: Valeur pouvant être un dictionnaire ou une valeur normale
+        @type value:
+        @param symbol: Symbole utilisé lors de la condition
+        @type symbol:
+        @return:
+        @rtype:
         """
-        print("key : {}, value : {}".format(key, value))
+
+        # print("key : {}, value : {}".format(key, value))
         if not isinstance(value, dict):
             return key + symbol + ORM.transform_for_sql(value)
 
@@ -119,20 +130,20 @@ class ORM:
     @staticmethod
     def parse_logic(value: dict):
         """
-        ici prend forme la version "complexe" des options mais qui permet de faire des recherche plus complexe
+        Ici prend forme la version "complexe" des options mais qui permet de faire des recherche plus complexes
 
-        imaginons que vous avais un objet Humain composé de
+        Imaginons que vous ayez un objet Humain composé de
         ID | NAME | AGE | SIZE
 
-        et que l'ont veux faire une recherche sur des humain ayant au minimum 18 ans et que le taille soit > 180
+        et que l'on veuille faire une recherche sur des humains ayant au minimum 18 ans, et que la taille soit > 180
         ou que leur nom soit Michel
 
-        en SQLite on ferais quelque chose comme ça
+        Alors, en SQLite on ferait quelque chose comme ça :
         select * from Humain where AGE >= 18 and (SIZE >= 180 or NAME = Michel)
 
-        avec les options "basic" on ne pouvais pas faire ça, il y a donc un système pour le faire maintenant.
+        avec les options "basic", on ne peut pas faire ça, il y a donc un système pour le faire maintenant.
 
-        si nous voulons faire cette requete voici quelle dictionnaire il va valoir faire
+        Si nous voulons faire cette requête, voici quel dictionnaire il va falloir faire :
 
         option = {
             "logic" : "and",
@@ -143,7 +154,7 @@ class ORM:
                         "value" : 18
                     }
                 },
-                { # une autre option "complex" c'est recursif donc on peux les imbriqué autant qu'on veux
+                { # une autre option "complex" c'est recursif donc on peut les imbriquer autant qu'on veut
                     "logic" : "or",
                     "options" : [
                         {
@@ -159,9 +170,13 @@ class ORM:
                 }
             ]
         }
-        :param value:
-        :return:
+
+        @param value:
+        @type value:
+        @return:
+        @rtype:
         """
+
         if ORM.is_logic(value):
             return "(" + " {} ".format(value.get("logic")).join(
                 ORM.parse_option(v, value.get("logic")) for v in value.get("options")) + ")"
@@ -173,18 +188,29 @@ class ORM:
               option: dict[str, Any] = {}, group: list[str] = [], size: int = -1, order: dict = {},
               logic: str = "AND", link: bool = False) -> \
             list[tuple] or list[type.__class__]:
+
         """
 
-        :param link:
-        :param type: type de retour si keys = [*], et table de recherche {ex : type = A => select * from A}
-        :param connection: connection a la bdd
-        :param keys: select retournée de la requete sqlite {ex : keys = ["*"] => select * from ...}
-        :param option: option de recherche (detail dans parse_option)
-        :param group: de quoi grouper un requete {group = ["name"] => select ..... groupe by 'name'}
-        :param size: taille de la liste de retour
-        :param order: ordre de recherche {order = {"id" : "asc"} => select ......... order by id asc}
-        :param logic: logic de base des options and ou or
-        :return:
+        @param type: Type de retour si keys = [*], et table de recherche {ex : type = A => select * from A}
+        @type type:
+        @param connection: Connection à la bdd
+        @type connection:
+        @param keys: Select retourné de la requête sqlite {ex : keys = ["*"] => select * from ...}
+        @type keys:
+        @param option: Option de recherche (détails dans parse_option)
+        @type option:
+        @param group: De quoi grouper une requete {group = ["name"] => select ..... groupe by 'name'}
+        @type group:
+        @param size: Taille de la liste de retour
+        @type size:
+        @param order: Ordre de recherche {order = {"id" : "asc"} => select ......... order by id asc}
+        @type order:
+        @param logic: Logique de base des options and ou or
+        @type logic:
+        @param link:
+        @type link:
+        @return:
+        @rtype:
         """
 
         if not connection:
@@ -228,7 +254,7 @@ class ORM:
         if size > 0:
             result = result[:size]
 
-        if keys != ["*"]:  # si tout les param sont pas demandé je ne peux construire les objets
+        if keys != ["*"]:  # si tous les params ne sont pas demandés on ne peut pas construire les objets
             return result
         else:
             array = []
