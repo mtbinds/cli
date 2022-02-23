@@ -238,7 +238,6 @@ class ORM:
             order = {"id" : "up", "name" : "down"} -> order by id ASC, name DESC
             """
             order_sql = " ORDER BY {}".format(", ".join(ORM.parse_order(k, v) for k, v in order.items()))
-
         if bool(group):
             """
             keys=["*", "COUNT(competences_id)"], group = ["competences_id"]) => SELECT *,COUNT(competences_id) from Aptitudes GROUP BY competences_id

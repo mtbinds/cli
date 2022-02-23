@@ -172,3 +172,15 @@ lors de la création d'un fils de cette classe.
 Les requetes serais extremement longue a expliquer, sachant que ce n'est pas le sujet premier de ce projet, veuillez
 retrouver [ici](./src/bdd/orm.py) le code qui est entièrement documenté avec des exemples.
 
+## Utilisation
+
+`/usr/bin/python3.9 -m src.main student -order etudiant_id=down`
+
+réponse
+
+```
+SELECT * from Etudiant ORDER BY etudiant_id DESC
+{'etudiant_id': '2', 'etudiant_prenom': 'test2', 'etudiant_nom': 'test1'}
+{'etudiant_id': '1', 'etudiant_prenom': 'test2', 'etudiant_nom': 'test1'}
+
+```

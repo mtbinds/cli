@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 import json
+from src.bdd.entity import Etudiant, Competences, Domaines, Evaluations, Matieres, Syllabus, Validations
 
 root = Path(__file__).parent
 
@@ -181,7 +182,7 @@ def make_query(parameter):
     for p in parameter:
         if re.search("-\w", p):  # switch de mode, -o option, -order order, -size size, -g group
             actual = p
-        elif re.search("\w=\w", p):  # machin=machin
+        elif re.search("\w\=\w", p):  # machin=machin
             split = p.split("=")
             if actual == "-o":
                 option[split[0]] = split[1]  # -o id=1 name=alo
