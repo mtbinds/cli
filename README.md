@@ -3,7 +3,7 @@
 - Année : M2 IWOCS
 - Projet groupe non alternant
 
-## Auteur(s)
+## Auteurs
 
 <h3>Groupe CLI</h3>
 
